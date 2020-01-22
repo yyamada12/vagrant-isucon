@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
   # config.vm.network "private_network", ip: "192.168.33.10"
-  config.vm.network "private_network", type: "dhcp"
+  # config.vm.network "private_network", type: "dhcp"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -63,9 +63,9 @@ Vagrant.configure("2") do |config|
   #
   # View the documentation for the provider you are using for more
   # information on available options.
-  config.vm.provider "virtualbox" do |vb|
-    vb.memory = "2048"
-  end
+  # config.vm.provider "virtualbox" do |vb|
+  #   vb.memory = "2048"
+  # end
 
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
@@ -75,24 +75,33 @@ Vagrant.configure("2") do |config|
   #   apt-get install -y apache2
   # SHELL
 
-  config.vm.define "image" do |web|
-    web.vm.provision "shell", inline: <<-SHELL
-      set -e
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get update
-      apt-get install -y --no-install-recommends ansible git
+  3.times do |num|
+    config.vm.define "image-#{num}" do |web|
+      web.vm.network "private_network", ip: "192.168.33.#{10+num}"
+      web.vm.provider "virtualbox" do |vb|
+        # set 1024 * 2 at provisioning
+        vb.memory = 1024 * 1
+        vb.cpus = 1
+      end
+      web.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -y --no-install-recommends ansible git
 
-      rm -rf ansible-isucon
-      git clone https://github.com/matsuu/ansible-isucon.git
-      (
-        cd ansible-isucon/isucon7-qualifier
-	PYTHONUNBUFFERED=1 ANSIBLE_FORCE_COLOR=true ansible-playbook -i local image.yml
-      )
-      rm -rf ansible-isucon
-    SHELL
+        rm -rf ansible-isucon
+        git clone https://github.com/yyamada12/ansible-isucon.git
+        (
+          cd ansible-isucon/isucon7-qualifier
+          PYTHONUNBUFFERED=1 ANSIBLE_FORCE_COLOR=true ansible-playbook -i local image.yml
+        )
+        rm -rf ansible-isucon
+      SHELL
+    end
   end
 
   config.vm.define "bench" do |bench|
+    bench.vm.network "private_network", ip:"192.168.33.9"
     bench.vm.provision "shell", inline: <<-SHELL
       set -e
       export DEBIAN_FRONTEND=noninteractive
@@ -100,7 +109,7 @@ Vagrant.configure("2") do |config|
       apt-get install -y --no-install-recommends ansible git
 
       rm -rf ansible-isucon
-      git clone https://github.com/matsuu/ansible-isucon.git
+      git clone https://github.com/yyamada12/ansible-isucon.git
       (
         cd ansible-isucon/isucon7-qualifier
         PYTHONUNBUFFERED=1 ANSIBLE_FORCE_COLOR=true ansible-playbook -i local bench.yml
